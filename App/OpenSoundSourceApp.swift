@@ -24,6 +24,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     weak var audioManager: AudioManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Request screen capture permissions required for process tapping
+        if !CGPreflightScreenCaptureAccess() {
+            CGRequestScreenCaptureAccess()
+        }
+
         // Create menu bar status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         

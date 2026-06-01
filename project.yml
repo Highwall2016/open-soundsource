@@ -13,6 +13,7 @@ targets:
       path: App/Info.plist
       properties:
         LSUIElement: YES
+        NSScreenCaptureUsageDescription: "OpenSoundSource needs screen capture permission to capture audio from other applications."
     sources:
       - path: App
     settings:
