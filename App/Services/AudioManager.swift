@@ -365,16 +365,21 @@ class AudioManager: ObservableObject {
         }
         logger.info("Tap UID: set=\(tapUUID.uuidString) actual=\(actualTapUID)")
 
-        // -- 2. Create tap-only aggregate device --
+        // -- 2. Create aggregate device with output device as clock --
         let tapConfig: [String: Any] = [
             kAudioSubTapUIDKey: actualTapUID,
             kAudioSubTapDriftCompensationKey: false
+        ]
+        let subDeviceConfig: [String: Any] = [
+            kAudioSubDeviceUIDKey: outputDeviceUID
         ]
         let aggDict: [String: Any] = [
             kAudioAggregateDeviceNameKey: "OSS_Route_\(pid)",
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
             kAudioAggregateDeviceIsPrivateKey: 1,
-            kAudioAggregateDeviceTapListKey: [tapConfig]
+            kAudioAggregateDeviceTapListKey: [tapConfig],
+            kAudioAggregateDeviceSubDeviceListKey: [subDeviceConfig],
+            kAudioAggregateDeviceMainSubDeviceKey: outputDeviceUID
         ]
 
         var aggregateDeviceID: AudioObjectID = 0
