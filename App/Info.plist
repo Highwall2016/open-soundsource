@@ -20,5 +20,7 @@
 	<string>1</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OpenSoundSource needs audio input access to capture and route app audio to different output devices.</string>
 </dict>
 </plist>

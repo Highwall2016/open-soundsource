@@ -12,6 +12,7 @@ struct OpenSoundSourceApp: App {
             AppListView()
                 .environmentObject(audioManager)
                 .frame(minWidth: 380, minHeight: 480)
+                .onAppear { appDelegate.audioManager = audioManager }
         }
         .windowStyle(.titleBar)
         .windowResizability(.contentSize)
@@ -20,7 +21,8 @@ struct OpenSoundSourceApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
-    
+    weak var audioManager: AudioManager?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create menu bar status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -45,5 +47,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
             return
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        audioManager?.stopAllRouting()
     }
 }

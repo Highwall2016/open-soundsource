@@ -1,86 +1,10 @@
 import SwiftUI
 import AppKit
 
-struct AppListView: View {
-    @EnvironmentObject var audioManager: AudioManager
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: "speaker.wave.3.fill")
-                    .foregroundColor(.accentColor)
-                Text("OpenSoundSource")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Button(action: {
-                    audioManager.refreshOutputDevices()
-                    audioManager.refreshApps()
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13))
-                }
-                .buttonStyle(.plain)
-                .help("Refresh")
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-
-            Divider()
-
-            if audioManager.apps.isEmpty {
-                Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "speaker.slash")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                    Text("No audio apps detected")
-                        .foregroundColor(.secondary)
-                    Text("Play audio in an app to see it here")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(audioManager.apps) { app in
-                            AppRow(app: app)
-                                .environmentObject(audioManager)
-                            Divider()
-                                .padding(.leading, 52)
-                        }
-                    }
-                }
-            }
-
-            Divider()
-
-            // Footer
-            HStack {
-                Text("Output devices: \(audioManager.outputDevices.count)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Button("Quit") {
-                    NSApp.terminate(nil)
-                }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-        }
-    }
-}
-
 struct AppRow: View {
     let app: AppAudioInfo
     @EnvironmentObject var audioManager: AudioManager
 
-    /// Name of the currently selected device (for display in the button)
     private var selectedDeviceName: String? {
         guard let id = app.selectedOutputDeviceID else { return nil }
         return audioManager.outputDevices.first(where: { $0.id == id })?.name
@@ -111,17 +35,39 @@ struct AppRow: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
 
-                if app.isRouting, let deviceName = selectedDeviceName {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(.green)
-                        Text(deviceName)
-                            .font(.caption)
-                            .foregroundColor(.green)
-                            .lineLimit(1)
+                switch app.routingState {
+                case .active:
+                    if let deviceName = selectedDeviceName {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(.green)
+                            Text(deviceName)
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .lineLimit(1)
+                        }
                     }
-                } else {
+                case .connecting:
+                    HStack(spacing: 3) {
+                        ProgressView()
+                            .controlSize(.mini)
+                        Text("Connecting…")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                case .error(let message):
+                    HStack(spacing: 3) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.red)
+                        Text(message)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .lineLimit(1)
+                            .help(message)
+                    }
+                case .idle:
                     Text("PID \(app.pid)")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -131,11 +77,10 @@ struct AppRow: View {
             Spacer()
 
             // Right side: device picker or stop button
-            if app.isRouting {
-                // Show device name button + stop X
+            switch app.routingState {
+            case .active:
                 HStack(spacing: 6) {
                     if let deviceName = selectedDeviceName {
-                        // Tappable label to change device while routing
                         Menu {
                             ForEach(audioManager.outputDevices) { device in
                                 Button(device.name) {
@@ -172,8 +117,31 @@ struct AppRow: View {
                     .buttonStyle(.plain)
                     .help("Stop routing")
                 }
-            } else {
-                // Route picker — clicking opens device list
+
+            case .connecting:
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.trailing, 4)
+
+            case .error:
+                Button(action: {
+                    audioManager.clearError(for: app.pid)
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 11))
+                        Text("Dismiss")
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(Color.red.opacity(0.12))
+                    .cornerRadius(6)
+                    .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+
+            case .idle:
                 Menu {
                     if audioManager.outputDevices.isEmpty {
                         Text("No output devices found")
