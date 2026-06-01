@@ -1,0 +1,311 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AC1C3A9B6E139717B42011B8 /* AppListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207A3B46E1DB518CA843E6B2 /* AppListView.swift */; };
+		C7EB081FAC24610CD360A454 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02663168A26C481B012E9274 /* AudioManager.swift */; };
+		D4C314AC9BB457DCCE8EE154 /* OpenSoundSourceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9215D015A1C2C9C644CE49FA /* OpenSoundSourceApp.swift */; };
+		E15BF4256CA3F23541C75875 /* menu_bar.png in Resources */ = {isa = PBXBuildFile; fileRef = 270B9B8F3F71F2CEB4FCCC79 /* menu_bar.png */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		02663168A26C481B012E9274 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
+		207A3B46E1DB518CA843E6B2 /* AppListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppListView.swift; sourceTree = "<group>"; };
+		270B9B8F3F71F2CEB4FCCC79 /* menu_bar.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = menu_bar.png; sourceTree = "<group>"; };
+		43017C0B77BA7B8F65E7132F /* OpenSoundSource.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenSoundSource.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7000D2F772C200F86B1E3A6B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9215D015A1C2C9C644CE49FA /* OpenSoundSourceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSoundSourceApp.swift; sourceTree = "<group>"; };
+		E1D35C3D2BC9AE76719532DF /* OpenSoundSource.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OpenSoundSource.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0AFA55A3DBE7969CBAA9F4E8 = {
+			isa = PBXGroup;
+			children = (
+				8C218A7BCC9E7EEF63AFBE08 /* App */,
+				E06CBD3C0BF8712991FE9E6A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8C218A7BCC9E7EEF63AFBE08 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				207A3B46E1DB518CA843E6B2 /* AppListView.swift */,
+				02663168A26C481B012E9274 /* AudioManager.swift */,
+				7000D2F772C200F86B1E3A6B /* Info.plist */,
+				270B9B8F3F71F2CEB4FCCC79 /* menu_bar.png */,
+				E1D35C3D2BC9AE76719532DF /* OpenSoundSource.entitlements */,
+				9215D015A1C2C9C644CE49FA /* OpenSoundSourceApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E06CBD3C0BF8712991FE9E6A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				43017C0B77BA7B8F65E7132F /* OpenSoundSource.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C57275137BE33B5898BF6CFE /* OpenSoundSource */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C651F43348BEACA3BE1AECE6 /* Build configuration list for PBXNativeTarget "OpenSoundSource" */;
+			buildPhases = (
+				5BA4D27B59318CC749B59B22 /* Sources */,
+				1295F794780A01058AA05753 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OpenSoundSource;
+			packageProductDependencies = (
+			);
+			productName = OpenSoundSource;
+			productReference = 43017C0B77BA7B8F65E7132F /* OpenSoundSource.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4109A42F5BE889A325EAC861 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 3A7B1F5943196FF51A8BF5FD /* Build configuration list for PBXProject "OpenSoundSource" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0AFA55A3DBE7969CBAA9F4E8;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E06CBD3C0BF8712991FE9E6A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C57275137BE33B5898BF6CFE /* OpenSoundSource */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1295F794780A01058AA05753 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E15BF4256CA3F23541C75875 /* menu_bar.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5BA4D27B59318CC749B59B22 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC1C3A9B6E139717B42011B8 /* AppListView.swift in Sources */,
+				C7EB081FAC24610CD360A454 /* AudioManager.swift in Sources */,
+				D4C314AC9BB457DCCE8EE154 /* OpenSoundSourceApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		14947E480129C53106EFA474 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		25D85B51EF7EAD859EE21676 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/OpenSoundSource.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.open-soundsource.OpenSoundSource";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A36A88794B7349E66DEF7F17 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/OpenSoundSource.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.open-soundsource.OpenSoundSource";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		B559F50B8DDC8D95AFEE7CDF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3A7B1F5943196FF51A8BF5FD /* Build configuration list for PBXProject "OpenSoundSource" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B559F50B8DDC8D95AFEE7CDF /* Debug */,
+				14947E480129C53106EFA474 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C651F43348BEACA3BE1AECE6 /* Build configuration list for PBXNativeTarget "OpenSoundSource" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25D85B51EF7EAD859EE21676 /* Debug */,
+				A36A88794B7349E66DEF7F17 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4109A42F5BE889A325EAC861 /* Project object */;
+}

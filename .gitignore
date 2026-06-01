@@ -1,0 +1,58 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Agent/AI generated
+.agents/
+.antigravitycli/
+.claude/
+
+# Xcode
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+
+# Swift PM
+.build/
+
+# Executables from swift scripts
+test_aggregate
+test_aggregate2
+test_aggregate3
+test_aggregate4
+test_aggregate5
+test_app
+test_audio_unit
+test_crash
+test_crash2
+test_crash3
+test_crash4
+test_crash5
+test_crash6
+test_crash7
+test_crash8
+test_crash9
+test_routing
+
+app_output.txt
+
+# Generated App
+OpenSoundSourceRaw.app/
