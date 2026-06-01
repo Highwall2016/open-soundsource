@@ -365,13 +365,25 @@ class AudioManager: ObservableObject {
         }
         logger.info("Tap UID: set=\(tapUUID.uuidString) actual=\(actualTapUID)")
 
-        // -- 2. Create aggregate device with output device as clock --
+        // Find the system default output device to use as a reliable clock
+        let system = AudioObjectID(kAudioObjectSystemObject)
+        var defAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var defID = AudioObjectID(kAudioObjectUnknown)
+        var defSize = UInt32(MemoryLayout<AudioObjectID>.size)
+        AudioObjectGetPropertyData(system, &defAddr, 0, nil, &defSize, &defID)
+        let clockDeviceUID = CoreAudioHelpers.getDeviceUID(for: defID) ?? outputDeviceUID
+
+        // -- 2. Create aggregate device with the default device as clock --
         let tapConfig: [String: Any] = [
             kAudioSubTapUIDKey: actualTapUID,
             kAudioSubTapDriftCompensationKey: false
         ]
         let subDeviceConfig: [String: Any] = [
-            kAudioSubDeviceUIDKey: outputDeviceUID
+            kAudioSubDeviceUIDKey: clockDeviceUID
         ]
         let aggDict: [String: Any] = [
             kAudioAggregateDeviceNameKey: "OSS_Route_\(pid)",
@@ -379,7 +391,7 @@ class AudioManager: ObservableObject {
             kAudioAggregateDeviceIsPrivateKey: 1,
             kAudioAggregateDeviceTapListKey: [tapConfig],
             kAudioAggregateDeviceSubDeviceListKey: [subDeviceConfig],
-            kAudioAggregateDeviceMainSubDeviceKey: outputDeviceUID
+            kAudioAggregateDeviceMainSubDeviceKey: clockDeviceUID
         ]
 
         var aggregateDeviceID: AudioObjectID = 0
@@ -518,6 +530,10 @@ class AudioManager: ObservableObject {
             inputProc: { (inRefCon, ioActionFlags, inTimeStamp, _, inNumberFrames, _) -> OSStatus in
                 let ctx = Unmanaged<CaptureContext>.fromOpaque(inRefCon).takeUnretainedValue()
 
+                if ctx.bufferCount == 0 {
+                    logger.info("First render callback fired!")
+                }
+
                 guard let buffer = AVAudioPCMBuffer(pcmFormat: ctx.captureFormat,
                                                      frameCapacity: inNumberFrames) else { return noErr }
                 buffer.frameLength = inNumberFrames
@@ -526,7 +542,14 @@ class AudioManager: ObservableObject {
                 let renderStatus = withUnsafeMutablePointer(to: &buffer.mutableAudioBufferList.pointee) { ablPtr in
                     AudioUnitRender(ctx.captureUnit, ioActionFlags, inTimeStamp, 1, inNumberFrames, ablPtr)
                 }
-                guard renderStatus == noErr else { return noErr }
+                
+                if renderStatus != noErr {
+                    if ctx.bufferCount % 100 == 0 {
+                        logger.error("AudioUnitRender failed: \(renderStatus)")
+                    }
+                    ctx.bufferCount += 1
+                    return noErr
+                }
 
                 // Periodic logging to confirm audio flow
                 ctx.bufferCount += 1
