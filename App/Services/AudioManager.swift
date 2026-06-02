@@ -24,6 +24,8 @@ private class CaptureContext {
     let playbackFormat: AVAudioFormat
     let converter: AVAudioConverter?
     var bufferCount: UInt64 = 0
+    var hasEverHadAudio: Bool = false
+    var silenceWarningLogged: Bool = false
 
     init(captureUnit: AudioUnit, playerNode: AVAudioPlayerNode,
          captureFormat: AVAudioFormat, playbackFormat: AVAudioFormat,
@@ -87,6 +89,7 @@ class AudioManager: ObservableObject {
 
     /// Destroy any process taps left behind by a previous crash or force-quit.
     /// Without this, tapped apps (e.g. Brave) remain muted permanently.
+    /// Preserves taps belonging to currently active routing sessions.
     private func cleanupOrphanedTaps() {
         let system = AudioObjectID(kAudioObjectSystemObject)
         var addr = AudioObjectPropertyAddress(
@@ -102,7 +105,12 @@ class AudioManager: ObservableObject {
         var tapIDs = [AudioObjectID](repeating: 0, count: count)
         guard AudioObjectGetPropertyData(system, &addr, 0, nil, &size, &tapIDs) == noErr else { return }
 
+        let activeSessionTapIDs = Set(sessions.values.map(\.tapID))
         for tapID in tapIDs {
+            if activeSessionTapIDs.contains(tapID) {
+                logger.info("Keeping active session tap \(tapID)")
+                continue
+            }
             logger.info("Destroying orphaned process tap \(tapID)")
             AudioHardwareDestroyProcessTap(tapID)
         }
@@ -205,9 +213,11 @@ class AudioManager: ObservableObject {
 
                     var routingState: RoutingState = .idle
                     var selectedDevice: AudioDeviceID? = nil
+                    var volume: Float = 1.0
                     if let existing = self.apps.first(where: { $0.pid == pid }) {
                         routingState = existing.routingState
                         selectedDevice = existing.selectedOutputDeviceID
+                        volume = existing.volume
                     } else if sessions.keys.contains(pid) {
                         routingState = .active
                     }
@@ -218,7 +228,8 @@ class AudioManager: ObservableObject {
                         bundleId: bundleId,
                         pid: pid,
                         routingState: routingState,
-                        selectedOutputDeviceID: selectedDevice
+                        selectedOutputDeviceID: selectedDevice,
+                        volume: volume
                     )
                     newApps.append(info)
                 }
@@ -232,6 +243,10 @@ class AudioManager: ObservableObject {
 
     func startRouting(for pid: pid_t, to outputDeviceID: AudioDeviceID) {
         stopRouting(for: pid)
+
+        // Clean up any orphaned taps from previous sessions before creating new ones,
+        // because an orphaned muted tap can silently steal audio from the target process.
+        cleanupOrphanedTaps()
 
         let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier ?? ""
         guard let outputDevice = outputDevices.first(where: { $0.id == outputDeviceID }) else {
@@ -304,9 +319,22 @@ class AudioManager: ObservableObject {
         if let index = apps.firstIndex(where: { $0.pid == pid }) {
             apps[index].routingState = .idle
             apps[index].selectedOutputDeviceID = nil
+            apps[index].volume = 1.0
         }
 
         logger.info("Routing stopped for PID \(pid)")
+    }
+
+    // MARK: - Volume Control
+
+    func setVolume(for pid: pid_t, volume: Float) {
+        let clamped = max(0, min(1, volume))
+        if let session = sessions[pid] {
+            session.playerNode.volume = clamped
+        }
+        if let index = apps.firstIndex(where: { $0.pid == pid }) {
+            apps[index].volume = clamped
+        }
     }
 
     /// Tear down every active routing session. Called on app termination to
@@ -365,40 +393,22 @@ class AudioManager: ObservableObject {
         }
         logger.info("Tap UID: set=\(tapUUID.uuidString) actual=\(actualTapUID)")
 
-        // Use a stable hardware output device as the aggregate clock. Prefer the
-        // built-in speaker clock because Bluetooth devices can disappear, switch
-        // transport modes, or drift while the tap is being restarted.
-        let system = AudioObjectID(kAudioObjectSystemObject)
-        var defAddr = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        var defID = AudioObjectID(kAudioObjectUnknown)
-        var defSize = UInt32(MemoryLayout<AudioObjectID>.size)
-        AudioObjectGetPropertyData(system, &defAddr, 0, nil, &defSize, &defID)
-
-        let defaultOutputUID = CoreAudioHelpers.getDeviceUID(for: defID)
-        let clockDeviceUID = CoreAudioHelpers.getPreferredClockOutputDeviceUID(
-            targetUID: outputDeviceUID,
-            defaultUID: defaultOutputUID
-        )
-
-        // -- 2. Create aggregate device for the process tap --
+        // -- 2. Create tap-only aggregate device --
+        // Do NOT add a hardware sub-device as clock source. When the clock
+        // device (e.g. BuiltInSpeakerDevice) runs at a different sample rate
+        // than the tapped process's output (e.g. 48 kHz vs 44.1 kHz for
+        // Bluetooth), and drift compensation is off, the tap delivers silence.
+        // A tap-only aggregate uses the tap's own clock, which is always in
+        // sync with the audio the process produces.
         let tapConfig: [String: Any] = [
             kAudioSubTapUIDKey: actualTapUID,
             kAudioSubTapDriftCompensationKey: false
-        ]
-        let subDeviceConfig: [String: Any] = [
-            kAudioSubDeviceUIDKey: clockDeviceUID
         ]
         let aggDict: [String: Any] = [
             kAudioAggregateDeviceNameKey: "OSS_Route_\(pid)",
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
             kAudioAggregateDeviceIsPrivateKey: 1,
-            kAudioAggregateDeviceTapListKey: [tapConfig],
-            kAudioAggregateDeviceSubDeviceListKey: [subDeviceConfig],
-            kAudioAggregateDeviceMainSubDeviceKey: clockDeviceUID
+            kAudioAggregateDeviceTapListKey: [tapConfig]
         ]
 
         var aggregateDeviceID: AudioObjectID = 0
@@ -407,7 +417,7 @@ class AudioManager: ObservableObject {
             AudioHardwareDestroyProcessTap(tapID)
             throw RoutingError.aggregateCreationFailed(aggStatus)
         }
-        logger.info("Created aggregate device \(aggregateDeviceID) with clock device \(clockDeviceUID)")
+        logger.info("Created tap-only aggregate device \(aggregateDeviceID)")
 
         try await Task.sleep(nanoseconds: 500_000_000)
 
@@ -584,7 +594,17 @@ class AudioManager: ObservableObject {
                             }
                         }
                     }
+                    if peak > 0.0001 {
+                        ctx.hasEverHadAudio = true
+                    }
                     logger.info("Audio flow: buf#\(ctx.bufferCount) frames=\(buffer.frameLength) peak=\(peak)")
+
+                    // Warn once if we've captured ~5 seconds of pure silence
+                    // (~500 buffers * 512 frames / 48000 Hz ≈ 5.3s)
+                    if ctx.bufferCount >= 500 && !ctx.hasEverHadAudio && !ctx.silenceWarningLogged {
+                        ctx.silenceWarningLogged = true
+                        logger.warning("Persistent silence detected — the tapped process may not be producing audio. Check that audio is playing in the app.")
+                    }
                 }
 
                 // Forward to playerNode, converting format if needed

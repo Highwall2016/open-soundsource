@@ -20,7 +20,9 @@
 	<string>1</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSScreenCaptureUsageDescription</key>
-	<string>OpenSoundSource needs screen capture permission to capture audio from other applications.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OpenSoundSource needs audio input access to capture and route app audio to different output devices.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>OpenSoundSource needs system audio capture access to route app audio to different output devices.</string>
 </dict>
 </plist>

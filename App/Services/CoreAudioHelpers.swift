@@ -107,7 +107,11 @@ enum CoreAudioHelpers {
             logger.info("Found \(matched.count) process objects by bundleID '\(bundleID)'")
             if !runningOutputMatched.isEmpty {
                 logger.info("Active output process objects for '\(bundleID)': \(runningOutputMatched)")
+                // Prefer only the processes actively outputting audio — tapping
+                // silent helper processes can cause the tap to capture all zeros.
+                return runningOutputMatched
             }
+            logger.warning("No process objects with isRunningOutput=1 for '\(bundleID)' — using all \(matched.count) matches (audio may not be playing)")
             return matched
         }
 
@@ -116,6 +120,7 @@ enum CoreAudioHelpers {
             logger.info("BundleID match empty; using \(pidMatched.count) PID-matched process objects for pid \(pid ?? 0)")
             if !runningOutputPIDMatched.isEmpty {
                 logger.info("Active output PID-matched process objects for pid \(pid ?? 0): \(runningOutputPIDMatched)")
+                return runningOutputPIDMatched
             }
             return pidMatched
         }

@@ -30,6 +30,7 @@ struct AppAudioInfo: Identifiable {
     let pid: pid_t
     var routingState: RoutingState = .idle
     var selectedOutputDeviceID: AudioDeviceID? = nil
+    var volume: Float = 1.0
 
     var isRouting: Bool { routingState.isRouting }
 }
