@@ -63,12 +63,6 @@ struct AppListView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Button("Quit") {
-                    NSApp.terminate(nil)
-                }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
