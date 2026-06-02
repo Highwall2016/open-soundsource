@@ -365,7 +365,9 @@ class AudioManager: ObservableObject {
         }
         logger.info("Tap UID: set=\(tapUUID.uuidString) actual=\(actualTapUID)")
 
-        // Find the system default output device to use as a reliable clock
+        // Use a stable hardware output device as the aggregate clock. Prefer the
+        // built-in speaker clock because Bluetooth devices can disappear, switch
+        // transport modes, or drift while the tap is being restarted.
         let system = AudioObjectID(kAudioObjectSystemObject)
         var defAddr = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
@@ -375,17 +377,14 @@ class AudioManager: ObservableObject {
         var defID = AudioObjectID(kAudioObjectUnknown)
         var defSize = UInt32(MemoryLayout<AudioObjectID>.size)
         AudioObjectGetPropertyData(system, &defAddr, 0, nil, &defSize, &defID)
-        
-        var clockDeviceUID = CoreAudioHelpers.getDeviceUID(for: defID) ?? outputDeviceUID
-        
-        // CRITICAL FIX: If the user set the system default to our virtual driver stub,
-        // it cannot provide a hardware clock for the tap mixdown (it will capture pure silence).
-        // In this case, we MUST fallback to the built-in speaker device as the clock!
-        if clockDeviceUID == "com.open-soundsource.device" {
-            clockDeviceUID = "BuiltInSpeakerDevice"
-        }
 
-        // -- 2. Create aggregate device with the default device as clock --
+        let defaultOutputUID = CoreAudioHelpers.getDeviceUID(for: defID)
+        let clockDeviceUID = CoreAudioHelpers.getPreferredClockOutputDeviceUID(
+            targetUID: outputDeviceUID,
+            defaultUID: defaultOutputUID
+        )
+
+        // -- 2. Create aggregate device for the process tap --
         let tapConfig: [String: Any] = [
             kAudioSubTapUIDKey: actualTapUID,
             kAudioSubTapDriftCompensationKey: false
@@ -408,7 +407,7 @@ class AudioManager: ObservableObject {
             AudioHardwareDestroyProcessTap(tapID)
             throw RoutingError.aggregateCreationFailed(aggStatus)
         }
-        logger.info("Created tap-only aggregate device \(aggregateDeviceID)")
+        logger.info("Created aggregate device \(aggregateDeviceID) with clock device \(clockDeviceUID)")
 
         try await Task.sleep(nanoseconds: 500_000_000)
 
@@ -469,8 +468,15 @@ class AudioManager: ObservableObject {
 
         var captureASBD = AudioStreamBasicDescription()
         var asbdSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
-        AudioUnitGetProperty(captureUnit, kAudioUnitProperty_StreamFormat,
-                             kAudioUnitScope_Output, 1, &captureASBD, &asbdSize)
+        cuStatus = AudioUnitGetProperty(captureUnit, kAudioUnitProperty_StreamFormat,
+                                        kAudioUnitScope_Output, 1, &captureASBD, &asbdSize)
+        guard cuStatus == noErr else {
+            logger.error("Failed to read capture AUHAL format: \(cuStatus)")
+            AudioComponentInstanceDispose(captureUnit)
+            AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
+            AudioHardwareDestroyProcessTap(tapID)
+            throw RoutingError.aggregateCreationFailed(cuStatus)
+        }
         let captureChannels = captureASBD.mChannelsPerFrame > 0 ? captureASBD.mChannelsPerFrame : 2
         // Use the device's actual sample rate, not the AUHAL's default
         let captureSampleRate = aggNominalSR > 0 ? aggNominalSR : (captureASBD.mSampleRate > 0 ? captureASBD.mSampleRate : 48000)
@@ -480,9 +486,16 @@ class AudioManager: ObservableObject {
         let captureFormat = AVAudioFormat(standardFormatWithSampleRate: captureSampleRate,
                                           channels: AVAudioChannelCount(captureChannels))!
         var outASBD = captureFormat.streamDescription.pointee
-        AudioUnitSetProperty(captureUnit, kAudioUnitProperty_StreamFormat,
-                             kAudioUnitScope_Output, 1, &outASBD,
-                             UInt32(MemoryLayout<AudioStreamBasicDescription>.size))
+        cuStatus = AudioUnitSetProperty(captureUnit, kAudioUnitProperty_StreamFormat,
+                                        kAudioUnitScope_Output, 1, &outASBD,
+                                        UInt32(MemoryLayout<AudioStreamBasicDescription>.size))
+        guard cuStatus == noErr else {
+            logger.error("Failed to set capture AUHAL format: \(cuStatus)")
+            AudioComponentInstanceDispose(captureUnit)
+            AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
+            AudioHardwareDestroyProcessTap(tapID)
+            throw RoutingError.aggregateCreationFailed(cuStatus)
+        }
 
         // -- 4. Set up playback engine targeting the output device --
         let engine = AVAudioEngine()
@@ -563,10 +576,12 @@ class AudioManager: ObservableObject {
                 ctx.bufferCount += 1
                 if ctx.bufferCount % 500 == 1 {
                     var peak: Float = 0
-                    if let cd = buffer.floatChannelData {
-                        for i in 0..<Int(buffer.frameLength) {
-                            let s = abs(cd[0][i])
-                            if s > peak { peak = s }
+                    if let channelData = buffer.floatChannelData {
+                        for channel in 0..<Int(buffer.format.channelCount) {
+                            for frame in 0..<Int(buffer.frameLength) {
+                                let sample = abs(channelData[channel][frame])
+                                if sample > peak { peak = sample }
+                            }
                         }
                     }
                     logger.info("Audio flow: buf#\(ctx.bufferCount) frames=\(buffer.frameLength) peak=\(peak)")
