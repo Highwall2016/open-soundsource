@@ -181,4 +181,4 @@ swift run process-tap --bundle-id <ID>      # Tap a process by bundle ID
 
 ## License
 
-TBD
+[MIT](LICENSE)
