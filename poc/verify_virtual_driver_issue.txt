@@ -1,0 +1,1 @@
+If Chrome outputs to the OpenSoundSource virtual driver, the tap captures silence because the virtual driver doesn't support the tap mixdown feature yet (it's a stub in Phase 2).

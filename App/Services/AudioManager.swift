@@ -375,7 +375,15 @@ class AudioManager: ObservableObject {
         var defID = AudioObjectID(kAudioObjectUnknown)
         var defSize = UInt32(MemoryLayout<AudioObjectID>.size)
         AudioObjectGetPropertyData(system, &defAddr, 0, nil, &defSize, &defID)
-        let clockDeviceUID = CoreAudioHelpers.getDeviceUID(for: defID) ?? outputDeviceUID
+        
+        var clockDeviceUID = CoreAudioHelpers.getDeviceUID(for: defID) ?? outputDeviceUID
+        
+        // CRITICAL FIX: If the user set the system default to our virtual driver stub,
+        // it cannot provide a hardware clock for the tap mixdown (it will capture pure silence).
+        // In this case, we MUST fallback to the built-in speaker device as the clock!
+        if clockDeviceUID == "com.open-soundsource.device" {
+            clockDeviceUID = "BuiltInSpeakerDevice"
+        }
 
         // -- 2. Create aggregate device with the default device as clock --
         let tapConfig: [String: Any] = [
