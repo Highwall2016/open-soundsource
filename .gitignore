@@ -37,11 +37,15 @@ DerivedData/
 # Compiled swift scripts
 Scripts/*
 !Scripts/*.swift
+!Scripts/release.sh
 
 app_output.txt
 
 # Generated App
 OpenSoundSourceRaw.app/
+
+# Release build artifacts
+.release-build/
 
 # vscode
 .vscode/
