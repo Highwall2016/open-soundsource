@@ -24,6 +24,7 @@ OpenSoundSource lets you send each app's audio to a different speaker or headpho
 │          │  • CATapDescription     │                     │
 │          │  • ProcessTap           │                     │
 │          │  • AggregateDevice      │                     │
+│          │  • AudioUnit (AUHAL)    │                     │
 │          │  • AVAudioEngine        │                     │
 │          └─────────────────────────┘                     │
 └──────────────────────────────────────────────────────────┘
@@ -40,7 +41,7 @@ OpenSoundSource lets you send each app's audio to a different speaker or headpho
 | Component | Language | Purpose |
 |-----------|----------|---------|
 | **App** | Swift / SwiftUI | Menu-bar app with per-app routing UI |
-| **AudioManager** | Swift | Manages process taps, aggregate devices, and AVAudioEngine sessions |
+| **AudioManager** | Swift | Manages process taps, aggregate devices, AUHAL capture units, and AVAudioEngine playback sessions |
 | **CoreAudioHelpers** | Swift | Low-level CoreAudio property queries (device names, UIDs, process objects) |
 | **VirtualDriver** | C++17 | CoreAudio HAL plugin via [libASPL](https://github.com/gavv/libASPL), registers a virtual output device |
 | **poc/** | Swift (SPM) | Standalone CLI proof-of-concept tools |
@@ -48,9 +49,10 @@ OpenSoundSource lets you send each app's audio to a different speaker or headpho
 ### How Routing Works
 
 1. **Process Tap** — `AudioHardwareCreateProcessTap` with `CATapDescription` captures audio from the target app (by bundle ID, including helper processes)
-2. **Aggregate Device** — A temporary aggregate device is created combining the process tap (input) and the target output speaker (output)
-3. **AVAudioEngine** — Connects the tap input to the aggregate's output, forwarding audio in real time
-4. **Mute Behavior** — The tap is set to `.muted` so the app's audio only plays through the routed device, not the default system output
+2. **Aggregate Device** — A temporary aggregate device is created combining the process tap and a stable hardware clock source (typically the built-in speaker, chosen for clock stability over Bluetooth devices)
+3. **AUHAL Capture** — A standalone `AudioUnit` (HAL Output) captures audio from the aggregate device's tap input
+4. **AVAudioEngine Playback** — An `AVAudioEngine` with a `PlayerNode` receives the captured buffers and plays them to the target output device, converting sample rate and channel count if needed
+5. **Mute Behavior** — The tap is set to `.muted` so the app's audio only plays through the routed device, not the default system output
 
 ## Requirements
 
@@ -64,7 +66,7 @@ OpenSoundSource lets you send each app's audio to a different speaker or headpho
 ### 1. Clone
 
 ```bash
-git clone --recursive https://github.com/user/open-soundsource.git
+git clone --recursive https://github.com/Highwall2016/open-soundsource.git
 cd open-soundsource
 ```
 
@@ -100,7 +102,7 @@ The built `.app` is at:
 
 ### 4. Grant Permissions
 
-On first launch, macOS will ask for **Microphone / Audio Capture** permission. This is required for process taps to function — OpenSoundSource does not record audio, it only routes it.
+On first launch, macOS will ask for **Screen Recording** permission. This is required for process taps to function — OpenSoundSource does not record your screen, it only uses this permission to capture and route audio from other applications.
 
 ### 5. Build the Virtual Driver (Optional)
 
@@ -158,9 +160,10 @@ open-soundsource/
 
 ```bash
 cd poc
-swift run list-devices      # Print all audio output devices
-swift run list-apps         # Print apps with active audio sessions
-swift run process-tap <PID> # Tap a process and show a live VU meter
+swift run list-devices                      # Print all audio output devices
+swift run list-apps                         # Print apps with active audio sessions
+swift run process-tap --pid <PID>           # Tap a process by PID and show a live VU meter
+swift run process-tap --bundle-id <ID>      # Tap a process by bundle ID
 ```
 
 ## Tech Stack
@@ -168,8 +171,8 @@ swift run process-tap <PID> # Tap a process and show a live VU meter
 | Layer | Technology |
 |-------|-----------|
 | UI | SwiftUI, AppKit (menu bar) |
-| Audio routing | CoreAudio C API, AVAudioEngine |
-| Process capture | `CATapDescription`, `AudioHardwareCreateProcessTap` (macOS 14.2+) |
+| Audio capture | `AudioUnit` (AUHAL), `CATapDescription`, `AudioHardwareCreateProcessTap` (macOS 14.2+) |
+| Audio playback | `AVAudioEngine`, `AVAudioPlayerNode` |
 | Device aggregation | `AudioHardwareCreateAggregateDevice` |
 | Virtual driver | C++17, [libASPL](https://github.com/gavv/libASPL) |
 | Build (app) | XcodeGen + Xcode |
@@ -178,4 +181,4 @@ swift run process-tap <PID> # Tap a process and show a live VU meter
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+TBD
