@@ -31,7 +31,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TAP_REPO="${TAP_REPO:-$HOME/development/homebrew-tap}"
-GITHUB_REPO="Highwall2016/open-soundsource"
+TAP_GITHUB_REPO="Highwall2016/homebrew-tap"
 BUILD_DIR="$REPO_ROOT/.release-build"
 
 # ─── Args ─────────────────────────────────────────────────────────────────────
@@ -52,8 +52,8 @@ bump_version() {
 get_latest_version() {
   # Try GitHub releases first, fall back to cask file
   local latest
-  latest=$(gh release list --repo "$GITHUB_REPO" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
-  latest="${latest#v}"  # strip leading 'v'
+  latest=$(gh release list --repo "$TAP_GITHUB_REPO" --limit 50 --json tagName --jq '[.[].tagName | select(startswith("opensoundsource-"))][0]' 2>/dev/null || true)
+  latest="${latest#opensoundsource-v}"  # strip prefix
   if [[ -z "$latest" ]]; then
     # Fall back to cask file
     local cask_file="$TAP_REPO/Casks/opensoundsource.rb"
@@ -182,18 +182,19 @@ echo "    ✓ $ZIP_NAME ($SIZE, sha256: $SHA256)"
 
 # ─── GitHub Release ──────────────────────────────────────────────────────────
 
-echo "==> Creating GitHub release v${VERSION}..."
+TAG="opensoundsource-v${VERSION}"
+echo "==> Creating GitHub release ${TAG}..."
 
 # Check if release already exists
-if gh release view "v${VERSION}" --repo "$GITHUB_REPO" &>/dev/null; then
-  echo "    Release v${VERSION} already exists. Deleting and recreating..."
-  gh release delete "v${VERSION}" --repo "$GITHUB_REPO" --yes --cleanup-tag 2>/dev/null || true
+if gh release view "${TAG}" --repo "$TAP_GITHUB_REPO" &>/dev/null; then
+  echo "    Release ${TAG} already exists. Deleting and recreating..."
+  gh release delete "${TAG}" --repo "$TAP_GITHUB_REPO" --yes --cleanup-tag 2>/dev/null || true
 fi
 
-gh release create "v${VERSION}" \
+gh release create "${TAG}" \
   "$BUILD_DIR/$ZIP_NAME" \
-  --repo "$GITHUB_REPO" \
-  --title "v${VERSION}" \
+  --repo "$TAP_GITHUB_REPO" \
+  --title "OpenSoundSource v${VERSION}" \
   --notes "## OpenSoundSource v${VERSION}
 
 ### Installation
