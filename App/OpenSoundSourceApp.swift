@@ -25,8 +25,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Request screen capture permissions required for process tapping
+        // Only prompt once; after that the app is already in System Settings
         if !CGPreflightScreenCaptureAccess() {
-            CGRequestScreenCaptureAccess()
+            let key = "hasRequestedScreenCaptureAccess"
+            if !UserDefaults.standard.bool(forKey: key) {
+                CGRequestScreenCaptureAccess()
+                UserDefaults.standard.set(true, forKey: key)
+            }
         }
 
         // Create menu bar status item
