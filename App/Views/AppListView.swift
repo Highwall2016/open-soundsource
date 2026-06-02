@@ -57,6 +57,32 @@ struct AppListView: View {
 
             Divider()
 
+            // Output device volume controls
+            if !audioManager.outputDevices.isEmpty {
+                VStack(spacing: 0) {
+                    HStack {
+                        Image(systemName: "hifispeaker.2.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        Text("Output Devices")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
+                    ForEach(audioManager.outputDevices) { device in
+                        if audioManager.deviceVolumes[device.id] != nil {
+                            DeviceVolumeRow(device: device)
+                                .environmentObject(audioManager)
+                        }
+                    }
+                }
+            }
+
             // Footer
             HStack {
                 Text("Output devices: \(audioManager.outputDevices.count)")

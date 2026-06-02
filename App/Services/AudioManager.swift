@@ -42,6 +42,7 @@ private class CaptureContext {
 class AudioManager: ObservableObject {
     @Published var apps: [AppAudioInfo] = []
     @Published var outputDevices: [AudioDevice] = []
+    @Published var deviceVolumes: [AudioDeviceID: Float] = [:]
 
     private var sessions: [pid_t: RoutingSession] = [:]
 
@@ -169,6 +170,24 @@ class AudioManager: ObservableObject {
         }
 
         self.outputDevices = newDevices
+        refreshDeviceVolumes()
+    }
+
+    // MARK: - Device Volume Control
+
+    func refreshDeviceVolumes() {
+        var volumes: [AudioDeviceID: Float] = [:]
+        for device in outputDevices {
+            if let vol = CoreAudioHelpers.getDeviceVolume(for: device.id) {
+                volumes[device.id] = vol
+            }
+        }
+        self.deviceVolumes = volumes
+    }
+
+    func setDeviceVolume(for deviceID: AudioDeviceID, volume: Float) {
+        CoreAudioHelpers.setDeviceVolume(for: deviceID, volume: volume)
+        deviceVolumes[deviceID] = max(0, min(1, volume))
     }
 
     // MARK: - App Enumeration

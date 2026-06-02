@@ -229,4 +229,83 @@ enum CoreAudioHelpers {
         }
         return "BuiltInSpeakerDevice"
     }
+
+    // MARK: - Device Volume
+
+    /// Whether the device supports volume control on the output scope.
+    static func hasVolumeControl(for deviceID: AudioDeviceID) -> Bool {
+        // Check master channel first
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        if AudioObjectHasProperty(deviceID, &addr) {
+            return true
+        }
+        // Some devices expose volume on channel 1 instead of master
+        addr.mElement = 1
+        return AudioObjectHasProperty(deviceID, &addr)
+    }
+
+    /// Get the current output volume (0.0–1.0) for a device.
+    /// Returns nil if the device has no volume control.
+    static func getDeviceVolume(for deviceID: AudioDeviceID) -> Float? {
+        var volume: Float32 = 0
+        var size = UInt32(MemoryLayout<Float32>.size)
+
+        // Try master channel
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        if AudioObjectHasProperty(deviceID, &addr) {
+            if AudioObjectGetPropertyData(deviceID, &addr, 0, nil, &size, &volume) == noErr {
+                return volume
+            }
+        }
+
+        // Fallback to channel 1
+        addr.mElement = 1
+        if AudioObjectHasProperty(deviceID, &addr) {
+            if AudioObjectGetPropertyData(deviceID, &addr, 0, nil, &size, &volume) == noErr {
+                return volume
+            }
+        }
+
+        return nil
+    }
+
+    /// Set the output volume (0.0–1.0) for a device.
+    /// Sets both channel 1 and channel 2 (stereo) when per-channel control is used.
+    static func setDeviceVolume(for deviceID: AudioDeviceID, volume: Float) {
+        var vol = max(0, min(1, volume))
+        let size = UInt32(MemoryLayout<Float32>.size)
+
+        // Try master channel first
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        if AudioObjectHasProperty(deviceID, &addr) {
+            var settable: DarwinBoolean = false
+            if AudioObjectIsPropertySettable(deviceID, &addr, &settable) == noErr, settable.boolValue {
+                AudioObjectSetPropertyData(deviceID, &addr, 0, nil, size, &vol)
+                return
+            }
+        }
+
+        // Per-channel fallback (channels 1 and 2 for stereo)
+        for ch: UInt32 in 1...2 {
+            addr.mElement = ch
+            if AudioObjectHasProperty(deviceID, &addr) {
+                var settable: DarwinBoolean = false
+                if AudioObjectIsPropertySettable(deviceID, &addr, &settable) == noErr, settable.boolValue {
+                    AudioObjectSetPropertyData(deviceID, &addr, 0, nil, size, &vol)
+                }
+            }
+        }
+    }
 }
