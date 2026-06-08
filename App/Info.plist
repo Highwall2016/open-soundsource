@@ -18,11 +18,13 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>OpenSoundSource needs audio input access to capture and route app audio to different output devices.</string>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>OpenSoundSource needs system audio capture access to route app audio to different output devices.</string>
+	<string>OpenSoundSource captures audio from individual applications using CoreAudio process taps to route their audio to different output devices. No audio is recorded, stored, or transmitted.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>OpenSoundSource needs audio access to capture and route audio from other applications to different output devices. No audio is recorded, stored, or transmitted.</string>
 </dict>
 </plist>

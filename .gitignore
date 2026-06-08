@@ -49,3 +49,4 @@ OpenSoundSourceRaw.app/
 
 # vscode
 .vscode/
+.gstack/

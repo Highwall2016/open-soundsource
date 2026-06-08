@@ -12,13 +12,13 @@ OpenSoundSource lets you send each app's audio to a different speaker or headpho
 ┌──────────────────────────────────────────────────────────┐
 │                   OpenSoundSource App                    │
 │                    (SwiftUI / macOS)                     │
-│                                                         │
-│  ┌─────────┐   ┌──────────────┐   ┌──────────────────┐  │
-│  │  Views   │──▶│ AudioManager │──▶│ CoreAudioHelpers │  │
-│  │ AppList  │   │  (routing)   │   │  (device enum)   │  │
-│  │ AppRow   │   └──────┬───────┘   └──────────────────┘  │
-│  └─────────┘           │                                 │
-│                        ▼                                 │
+│                                                          │
+│  ┌─────────┐   ┌──────────────┐   ┌──────────────────┐   │
+│  │  Views  │──▶│ AudioManager │──▶│ CoreAudioHelpers │   │
+│  │ AppList │   │  (routing)   │   │  (device enum)   │   │
+│  │ AppRow  │   └──────┬───────┘   └──────────────────┘   │
+│  └─────────┘          │                                  │
+│                       ▼                                  │
 │          ┌─────────────────────────┐                     │
 │          │    CoreAudio APIs       │                     │
 │          │  • CATapDescription     │                     │
@@ -178,6 +178,13 @@ swift run process-tap --bundle-id <ID>      # Tap a process by bundle ID
 | Build (app) | XcodeGen + Xcode |
 | Build (driver) | CMake |
 | Package manager | Swift Package Manager (PoC tools) |
+
+## Support
+
+If OpenSoundSource helps you, you can support development here:
+
+<a href="https://ko-fi.com/highwall" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Support-ff5f5f?style=for-the-badge&logo=kofi&logoColor=white" alt="Support on Ko-fi"></a>
+<a href="https://paypal.me/Highwall777" target="_blank"><img src="https://img.shields.io/badge/PayPal-Donate-0070ba?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate with PayPal"></a>
 
 ## License
 

@@ -4,12 +4,20 @@
 #
 # Usage:
 #   ./Scripts/release.sh [version] [--major|--minor|--patch]
+#   ./Scripts/release.sh --mas [version]
 #
 # Examples:
 #   ./Scripts/release.sh           # auto-bump patch (0.1.0 → 0.1.1)
 #   ./Scripts/release.sh --minor   # auto-bump minor (0.1.1 → 0.2.0)
 #   ./Scripts/release.sh --major   # auto-bump major (0.2.0 → 1.0.0)
 #   ./Scripts/release.sh 0.3.0     # explicit version
+#   ./Scripts/release.sh --mas     # MAS build, auto-bump patch
+#   ./Scripts/release.sh --mas 1.0.0  # MAS build with explicit version
+#
+# MAS release:
+#   Builds only the app (no virtual driver), signs with Apple Distribution
+#   cert, and prepares for upload via Transporter. No GitHub release or
+#   Homebrew cask update is performed.
 #
 # Prerequisites:
 #   - Xcode + command-line tools
@@ -66,36 +74,51 @@ get_latest_version() {
 
 BUMP="patch"
 VERSION=""
+MAS=0
 
 if [[ $# -ge 1 ]]; then
   case "$1" in
     --major) BUMP="major" ;;
     --minor) BUMP="minor" ;;
     --patch) BUMP="patch" ;;
+    --mas)
+      MAS=1
+      if [[ $# -ge 2 ]]; then
+        VERSION="$2"
+      fi
+      ;;
     -*)
       echo "Unknown flag: $1"
       echo "Usage: $0 [version] [--major|--minor|--patch]"
+      echo "       $0 --mas [version]"
       exit 1
       ;;
     *)  VERSION="$1" ;;
   esac
 fi
 
-if [[ -z "$VERSION" ]]; then
-  LATEST=$(get_latest_version)
-  VERSION=$(bump_version "$LATEST" "$BUMP")
-  echo "==> Latest version: v${LATEST}"
-  echo "==> Bumping ${BUMP}: v${LATEST} → v${VERSION}"
-  echo ""
-  read -r -p "    Continue with v${VERSION}? [Y/n] " confirm
-  if [[ "$confirm" =~ ^[Nn] ]]; then
-    echo "Aborted."
-    exit 0
+if [[ $MAS -eq 0 ]]; then
+  if [[ -z "$VERSION" ]]; then
+    LATEST=$(get_latest_version)
+    VERSION=$(bump_version "$LATEST" "$BUMP")
+    echo "==> Latest version: v${LATEST}"
+    echo "==> Bumping ${BUMP}: v${LATEST} → v${VERSION}"
+    echo ""
+    read -r -p "    Continue with v${VERSION}? [Y/n] " confirm
+    if [[ "$confirm" =~ ^[Nn] ]]; then
+      echo "Aborted."
+      exit 0
+    fi
   fi
+  ZIP_NAME="OpenSoundSource-${VERSION}.zip"
+else
+  if [[ -z "$VERSION" ]]; then
+    VERSION=$(bump_version "0.0.0" "patch")
+  fi
+  ZIP_NAME=""  # MAS build: no zip archive
 fi
-ZIP_NAME="OpenSoundSource-${VERSION}.zip"
 
-echo "==> Releasing OpenSoundSource v${VERSION}"
+echo "==> Releasing OpenSoundSource v${VERSION} ($([ $MAS -eq 1 ] && echo "Mac App Store" || echo "GitHub + Homebrew"))"
 echo ""
 
 # ─── Clean ────────────────────────────────────────────────────────────────────
@@ -112,20 +135,34 @@ xcodegen generate --quiet 2>/dev/null || xcodegen generate
 
 # ─── Build App (universal) ───────────────────────────────────────────────────
 
-echo "==> Building OpenSoundSource.app (Release, universal)..."
-xcodebuild \
-  -project "$REPO_ROOT/OpenSoundSource.xcodeproj" \
-  -scheme OpenSoundSource \
-  -configuration Release \
-  -derivedDataPath "$BUILD_DIR/DerivedData" \
-  -arch arm64 -arch x86_64 \
-  ONLY_ACTIVE_ARCH=NO \
-  CODE_SIGN_IDENTITY="-" \
-  CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGNING_ALLOWED=NO \
-  clean build 2>&1 | tail -5
+if [[ $MAS -eq 1 ]]; then
+  echo "==> Building OpenSoundSource.app (MAS, universal)..."
+  xcodebuild \
+    -project "$REPO_ROOT/OpenSoundSource.xcodeproj" \
+    -scheme OpenSoundSource \
+    -configuration MASRelease \
+    -derivedDataPath "$BUILD_DIR/DerivedData" \
+    -arch arm64 -arch x86_64 \
+    ONLY_ACTIVE_ARCH=NO \
+    clean build 2>&1 | tail -5
 
-APP_PATH="$BUILD_DIR/DerivedData/Build/Products/Release/OpenSoundSource.app"
+  APP_PATH="$BUILD_DIR/DerivedData/Build/Products/MASRelease/OpenSoundSource.app"
+else
+  echo "==> Building OpenSoundSource.app (Release, universal)..."
+  xcodebuild \
+    -project "$REPO_ROOT/OpenSoundSource.xcodeproj" \
+    -scheme OpenSoundSource \
+    -configuration Release \
+    -derivedDataPath "$BUILD_DIR/DerivedData" \
+    -arch arm64 -arch x86_64 \
+    ONLY_ACTIVE_ARCH=NO \
+    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGNING_REQUIRED=NO \
+    CODE_SIGNING_ALLOWED=NO \
+    clean build 2>&1 | tail -5
+
+  APP_PATH="$BUILD_DIR/DerivedData/Build/Products/Release/OpenSoundSource.app"
+fi
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "ERROR: App build failed — $APP_PATH not found"
@@ -134,28 +171,29 @@ fi
 
 echo "    ✓ App built at $APP_PATH"
 
-# ─── Build Virtual Driver (universal) ────────────────────────────────────────
+# ─── Virtual Driver (skip for MAS) ────────────────────────────────────────────
 
-echo "==> Building VirtualDriver (Release, universal)..."
-DRIVER_BUILD="$BUILD_DIR/driver-build"
-mkdir -p "$DRIVER_BUILD"
-cd "$DRIVER_BUILD"
-cmake "$REPO_ROOT/VirtualDriver" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-  2>&1 | tail -3
-make -j"$(sysctl -n hw.ncpu)" 2>&1 | tail -3
+DRIVER_PATH=""
+if [[ $MAS -eq 0 ]]; then
+  echo "==> Building VirtualDriver (Release, universal)..."
+  DRIVER_BUILD="$BUILD_DIR/driver-build"
+  mkdir -p "$DRIVER_BUILD"
+  cd "$DRIVER_BUILD"
+  cmake "$REPO_ROOT/VirtualDriver" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+    2>&1 | tail -3
+  make -j"$(sysctl -n hw.ncpu)" 2>&1 | tail -3
 
-DRIVER_PATH="$DRIVER_BUILD/OpenSoundSourceDriver.driver"
+  DRIVER_PATH="$DRIVER_BUILD/OpenSoundSourceDriver.driver"
 
-if [[ ! -d "$DRIVER_PATH" ]]; then
-  echo "WARNING: Driver build failed — $DRIVER_PATH not found"
-  echo "         Continuing without the virtual driver."
-  DRIVER_PATH=""
-fi
-
-if [[ -n "$DRIVER_PATH" ]]; then
-  echo "    ✓ Driver built at $DRIVER_PATH"
+  if [[ ! -d "$DRIVER_PATH" ]]; then
+    echo "WARNING: Driver build failed — $DRIVER_PATH not found"
+    echo "         Continuing without the virtual driver."
+    DRIVER_PATH=""
+  else
+    echo "    ✓ Driver built at $DRIVER_PATH"
+  fi
 fi
 
 # ─── Stage ────────────────────────────────────────────────────────────────────
@@ -164,11 +202,26 @@ echo "==> Staging release artifacts..."
 STAGING="$BUILD_DIR/staging"
 cp -R "$APP_PATH" "$STAGING/"
 
-if [[ -n "$DRIVER_PATH" ]]; then
+if [[ $MAS -eq 0 && -n "$DRIVER_PATH" ]]; then
   cp -R "$DRIVER_PATH" "$STAGING/"
 fi
 
-# ─── Package ──────────────────────────────────────────────────────────────────
+# ─── Package (skip for MAS) ──────────────────────────────────────────────────
+
+if [[ $MAS -eq 1 ]]; then
+  echo "    ✓ MAS build ready at $APP_PATH"
+  echo ""
+  echo "==> MAS build complete."
+  echo ""
+  echo "    Next steps:"
+  echo "    1. Sign with Apple Distribution certificate:"
+  echo "       codesign --force --deep --sign \"Apple Distribution: <Team>\" \"$APP_PATH\""
+  echo "    2. Archive for Transporter or Xcode Cloud:"
+  echo "       ditto -c -k --sequesterRsrc --keepParent \"$APP_PATH\" \"OpenSoundSource-${VERSION}.zip\""
+  echo "    3. Upload via Transporter (App Store Connect) or Xcode Cloud"
+  echo ""
+  exit 0
+fi
 
 echo "==> Creating $ZIP_NAME..."
 cd "$STAGING"
