@@ -11,6 +11,7 @@ Thumbs.db
 .agents/
 .antigravitycli/
 .claude/
+AGENTS.md
 
 # Xcode
 build/
@@ -50,3 +51,5 @@ OpenSoundSourceRaw.app/
 # vscode
 .vscode/
 .gstack/
+
+.codegraph/

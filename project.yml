@@ -17,19 +17,24 @@ targets:
     info:
       path: App/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
         LSUIElement: YES
         LSApplicationCategoryType: public.app-category.utilities
         NSMicrophoneUsageDescription: "OpenSoundSource needs audio access to capture and route audio from other applications to different output devices. No audio is recorded, stored, or transmitted."
         NSAudioCaptureUsageDescription: "OpenSoundSource captures audio from individual applications using CoreAudio process taps to route their audio to different output devices. No audio is recorded, stored, or transmitted."
+        NSScreenCaptureUsageDescription: "OpenSoundSource uses Screen Recording permission only so macOS allows process audio taps for selected local applications. Screen contents are not recorded, saved, uploaded, or shared."
     sources:
       - path: App
+        excludes:
+          - menubar_icon.png
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: App/OpenSoundSource.entitlements
         CODE_SIGN_STYLE: Automatic
-        CURRENT_PROJECT_VERSION: 1
-        DEVELOPMENT_TEAM: 6K376BLA4E
+        CURRENT_PROJECT_VERSION: 10
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_FILE: App/Info.plist
         MARKETING_VERSION: 1.0

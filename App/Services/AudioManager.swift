@@ -5,10 +5,48 @@ import AVFAudio
 import os.log
 
 private let logger = Logger(subsystem: "com.open-soundsource", category: "AudioManager")
+private let ownedTapUIDsDefaultsKey = "ownedProcessTapUIDs"
+
+private func ownedProcessTapUIDs() -> Set<String> {
+    Set(UserDefaults.standard.stringArray(forKey: ownedTapUIDsDefaultsKey) ?? [])
+}
+
+private func saveOwnedProcessTapUIDs(_ uids: Set<String>) {
+    UserDefaults.standard.set(Array(uids).sorted(), forKey: ownedTapUIDsDefaultsKey)
+}
+
+private func addOwnedProcessTapUID(_ uid: String) {
+    var uids = ownedProcessTapUIDs()
+    uids.insert(uid)
+    saveOwnedProcessTapUIDs(uids)
+}
+
+private func removeOwnedProcessTapUID(_ uid: String) {
+    var uids = ownedProcessTapUIDs()
+    uids.remove(uid)
+    saveOwnedProcessTapUIDs(uids)
+}
+
+private func processTapUID(for tapID: AudioObjectID) -> String? {
+    var tapUIDAddr = AudioObjectPropertyAddress(
+        mSelector: kAudioTapPropertyUID,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var tapUIDValue: Unmanaged<CFString>? = nil
+    var tapUIDSize = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+
+    guard AudioObjectGetPropertyData(tapID, &tapUIDAddr, 0, nil, &tapUIDSize, &tapUIDValue) == noErr,
+          let uid = tapUIDValue?.takeRetainedValue() as String? else {
+        return nil
+    }
+    return uid
+}
 
 /// Holds all the CoreAudio resources for one active routing session.
 private struct RoutingSession {
     let tapID: AudioObjectID
+    let tapUID: String
     let aggregateDeviceID: AudioObjectID
     let engine: AVAudioEngine
     let playerNode: AVAudioPlayerNode
@@ -88,10 +126,13 @@ class AudioManager: ObservableObject {
         }
     }
 
-    /// Destroy any process taps left behind by a previous crash or force-quit.
+    /// Destroy any OpenSoundSource process taps left behind by a previous crash or force-quit.
     /// Without this, tapped apps (e.g. Brave) remain muted permanently.
     /// Preserves taps belonging to currently active routing sessions.
     private func cleanupOrphanedTaps() {
+        let ownedTapUIDs = ownedProcessTapUIDs()
+        guard !ownedTapUIDs.isEmpty else { return }
+
         let system = AudioObjectID(kAudioObjectSystemObject)
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyTapList,
@@ -112,8 +153,18 @@ class AudioManager: ObservableObject {
                 logger.info("Keeping active session tap \(tapID)")
                 continue
             }
-            logger.info("Destroying orphaned process tap \(tapID)")
-            AudioHardwareDestroyProcessTap(tapID)
+
+            guard let tapUID = processTapUID(for: tapID), ownedTapUIDs.contains(tapUID) else {
+                continue
+            }
+
+            logger.info("Destroying orphaned OpenSoundSource process tap \(tapID)")
+            let status = AudioHardwareDestroyProcessTap(tapID)
+            if status == noErr {
+                removeOwnedProcessTapUID(tapUID)
+            } else {
+                logger.error("Failed to destroy orphaned OpenSoundSource process tap \(tapID): \(status)")
+            }
         }
     }
 
@@ -332,6 +383,7 @@ class AudioManager: ObservableObject {
         session.engine.stop()
         AudioHardwareDestroyAggregateDevice(session.aggregateDeviceID)
         AudioHardwareDestroyProcessTap(session.tapID)
+        removeOwnedProcessTapUID(session.tapUID)
 
         sessions.removeValue(forKey: pid)
 
@@ -396,21 +448,19 @@ class AudioManager: ObservableObject {
 
         // Query the actual tap UID assigned by CoreAudio — it may differ
         // from the UUID we set on CATapDescription.
-        var tapUIDAddr = AudioObjectPropertyAddress(
-            mSelector: kAudioTapPropertyUID,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        var tapUIDValue: Unmanaged<CFString>? = nil
-        var tapUIDSize = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
         let actualTapUID: String
-        if AudioObjectGetPropertyData(tapID, &tapUIDAddr, 0, nil, &tapUIDSize, &tapUIDValue) == noErr,
-           let uid = tapUIDValue?.takeRetainedValue() as String? {
+        if let uid = processTapUID(for: tapID) {
             actualTapUID = uid
         } else {
             actualTapUID = tapUUID.uuidString
         }
+        addOwnedProcessTapUID(actualTapUID)
         logger.info("Tap UID: set=\(tapUUID.uuidString) actual=\(actualTapUID)")
+
+        func destroyCreatedTap() {
+            AudioHardwareDestroyProcessTap(tapID)
+            removeOwnedProcessTapUID(actualTapUID)
+        }
 
         // -- 2. Create tap-only aggregate device --
         // Do NOT add a hardware sub-device as clock source. When the clock
@@ -433,7 +483,7 @@ class AudioManager: ObservableObject {
         var aggregateDeviceID: AudioObjectID = 0
         let aggStatus = AudioHardwareCreateAggregateDevice(aggDict as CFDictionary, &aggregateDeviceID)
         guard aggStatus == noErr else {
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(aggStatus)
         }
         logger.info("Created tap-only aggregate device \(aggregateDeviceID)")
@@ -452,14 +502,14 @@ class AudioManager: ObservableObject {
         )
         guard let component = AudioComponentFindNext(nil, &captureComponentDesc) else {
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(-10860)
         }
         var optCaptureUnit: AudioUnit?
         var cuStatus = AudioComponentInstanceNew(component, &optCaptureUnit)
         guard cuStatus == noErr, let captureUnit = optCaptureUnit else {
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(cuStatus)
         }
 
@@ -479,7 +529,7 @@ class AudioManager: ObservableObject {
         guard cuStatus == noErr else {
             AudioComponentInstanceDispose(captureUnit)
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(cuStatus)
         }
 
@@ -503,7 +553,7 @@ class AudioManager: ObservableObject {
             logger.error("Failed to read capture AUHAL format: \(cuStatus)")
             AudioComponentInstanceDispose(captureUnit)
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(cuStatus)
         }
         let captureChannels = captureASBD.mChannelsPerFrame > 0 ? captureASBD.mChannelsPerFrame : 2
@@ -522,7 +572,7 @@ class AudioManager: ObservableObject {
             logger.error("Failed to set capture AUHAL format: \(cuStatus)")
             AudioComponentInstanceDispose(captureUnit)
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(cuStatus)
         }
 
@@ -544,7 +594,7 @@ class AudioManager: ObservableObject {
             logger.error("Failed to set output device: \(error)")
             AudioComponentInstanceDispose(captureUnit)
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(-10861)
         }
 
@@ -658,7 +708,7 @@ class AudioManager: ObservableObject {
             contextRetained.release()
             AudioComponentInstanceDispose(captureUnit)
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(cuStatus)
         }
 
@@ -668,7 +718,7 @@ class AudioManager: ObservableObject {
             contextRetained.release()
             AudioComponentInstanceDispose(captureUnit)
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
             throw RoutingError.aggregateCreationFailed(cuStatus)
         }
 
@@ -681,7 +731,7 @@ class AudioManager: ObservableObject {
             playerNode.stop()
             engine.stop()
             AudioHardwareDestroyAggregateDevice(aggregateDeviceID)
-            AudioHardwareDestroyProcessTap(tapID)
+            destroyCreatedTap()
         }
 
         engine.prepare()
@@ -723,6 +773,7 @@ class AudioManager: ObservableObject {
 
         return RoutingSession(
             tapID: tapID,
+            tapUID: actualTapUID,
             aggregateDeviceID: aggregateDeviceID,
             engine: engine,
             playerNode: playerNode,

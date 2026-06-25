@@ -136,15 +136,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             return false
         }
 
-        let symbolName = hasActiveRouting
-            ? "speaker.wave.3.fill"
-            : "speaker.wave.2"
+        button.title = ""
+        button.image = statusBarIcon()
+        button.imagePosition = .imageOnly
+        button.imageScaling = .scaleProportionallyDown
+        button.alphaValue = hasActiveRouting ? 1 : 0.72
+        button.toolTip = hasActiveRouting
+            ? "OpenSoundSource - routing audio"
+            : "OpenSoundSource"
+    }
 
-        if let img = NSImage(systemSymbolName: symbolName,
-                             accessibilityDescription: "OpenSoundSource") {
-            img.isTemplate = true
-            button.image = img
+    private func statusBarIcon() -> NSImage {
+        guard let sourceImage = NSApp.applicationIconImage else {
+            return NSImage(systemSymbolName: "speaker.wave.2.fill", accessibilityDescription: "OpenSoundSource")
+                ?? NSImage(size: NSSize(width: 18, height: 18))
         }
+        let targetSize = NSSize(width: 18, height: 18)
+        let image = NSImage(size: targetSize)
+        image.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+        sourceImage.draw(
+            in: NSRect(origin: .zero, size: targetSize),
+            from: NSRect(origin: .zero, size: sourceImage.size),
+            operation: .sourceOver,
+            fraction: 1
+        )
+        image.unlockFocus()
+        image.isTemplate = false
+        return image
     }
 
     // MARK: - NSPopoverDelegate

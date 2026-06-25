@@ -15,9 +15,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSUIElement</key>
@@ -26,5 +28,7 @@
 	<string>OpenSoundSource captures audio from individual applications using CoreAudio process taps to route their audio to different output devices. No audio is recorded, stored, or transmitted.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>OpenSoundSource needs audio access to capture and route audio from other applications to different output devices. No audio is recorded, stored, or transmitted.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>OpenSoundSource uses Screen Recording permission only so macOS allows process audio taps for selected local applications. Screen contents are not recorded, saved, uploaded, or shared.</string>
 </dict>
 </plist>
