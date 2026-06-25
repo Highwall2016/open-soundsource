@@ -1,10 +1,16 @@
 # OpenSoundSource
 
-Per-app audio routing for macOS — route any application's audio to any output device independently.
+Route every Mac app to the right speaker.
 
-## Install
+OpenSoundSource is a macOS menu bar app for per-app audio routing. Send music to your desk speakers, keep calls in your headphones, and route browser audio somewhere else without changing the system default output.
 
-Install from the [Mac App Store](https://apps.apple.com/us/app/opensoundsource/id6777823500?mt=12) or with Homebrew:
+![OpenSoundSource app preview](AppStoreScreenshots/OpenSoundSource-1440x900.png)
+
+## Install OpenSoundSource
+
+[Download on the Mac App Store](https://apps.apple.com/us/app/opensoundsource/id6777823500?mt=12)
+
+Or install with Homebrew:
 
 ```bash
 brew tap Highwall2016/tap
@@ -13,7 +19,37 @@ brew install opensoundsource
 
 ## What It Does
 
-OpenSoundSource lets you send each app's audio to a different speaker or headphone. For example, play Spotify through your desk speakers while routing a Zoom call to your headphones — all without changing the system default output.
+OpenSoundSource lets you send each app's audio to a different output device:
+
+| App or workflow | Example route |
+| --- | --- |
+| Music | Studio Display or desk speakers |
+| Video calls | Headphones |
+| Browser audio | MacBook speakers |
+| Games or media apps | External speakers or audio interface |
+
+Use it when you want to:
+
+- Keep meeting audio in headphones while music plays through speakers.
+- Route browser audio away from your main output device.
+- Switch per-app routes from the menu bar instead of changing the global system output.
+- Test and debug macOS audio behavior with an open-source implementation.
+
+## Privacy
+
+OpenSoundSource processes audio locally on your Mac. It does not record, store, upload, or transmit your audio.
+
+macOS may ask for Screen Recording or audio capture permission because process-level audio capture uses those system permissions. OpenSoundSource uses them only for local audio routing.
+
+## Compatibility
+
+- **macOS 14.2+** is required for CoreAudio process taps.
+- Works as a menu bar utility.
+- Installs from the Mac App Store or Homebrew.
+
+## For Developers
+
+OpenSoundSource is open source and built with SwiftUI, CoreAudio process taps, aggregate devices, AUHAL capture, and AVAudioEngine playback. The sections below explain the implementation and how to build it locally.
 
 ## Architecture
 
