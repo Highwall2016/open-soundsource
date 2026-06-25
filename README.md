@@ -2,7 +2,14 @@
 
 Per-app audio routing for macOS — route any application's audio to any output device independently.
 
-Available on the [Mac App Store](https://apps.apple.com/us/app/opensoundsource/id6777823500?mt=12).
+## Install
+
+Install from the [Mac App Store](https://apps.apple.com/us/app/opensoundsource/id6777823500?mt=12) or with Homebrew:
+
+```bash
+brew tap Highwall2016/tap
+brew install opensoundsource
+```
 
 ## What It Does
 
