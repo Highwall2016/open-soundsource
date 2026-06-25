@@ -2,6 +2,8 @@
 
 Per-app audio routing for macOS — route any application's audio to any output device independently.
 
+Available on the [Mac App Store](https://apps.apple.com/us/app/opensoundsource/id6777823500?mt=12).
+
 ## What It Does
 
 OpenSoundSource lets you send each app's audio to a different speaker or headphone. For example, play Spotify through your desk speakers while routing a Zoom call to your headphones — all without changing the system default output.
